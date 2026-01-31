@@ -9,6 +9,7 @@ import '../widgets/emoji_selector.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/weekly_rhythm_card.dart';
 import '../widgets/paper_plane_particle.dart';
+import '../widgets/flight_mode_selector.dart';
 import '../utils/app_theme.dart';
 import 'package:intl/intl.dart';
 
@@ -126,8 +127,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     int moodLevel = 3;
     int fatigueScore = 3;
     int rhythmIntensity = 5;
-    String activityType = 'peak_activity';
-    String selectedEmoji = '💪';
+    String flightMode = 'solo_flight';
     TimeOfDay selectedTime = TimeOfDay.now();
     
     final result = await showDialog<bool>(
@@ -209,6 +209,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ],
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 20),
+                  
+                  // 飞行模式选择
+                  _buildSectionTitle('飞行模式'),
+                  const SizedBox(height: 12),
+                  FlightModeSelector(
+                    selectedMode: flightMode,
+                    onModeChanged: (mode) {
+                      setDialogState(() {
+                        flightMode = mode;
+                      });
+                    },
                   ),
                   const SizedBox(height: 20),
                   
@@ -301,7 +314,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         timestamp: recordDateTime.millisecondsSinceEpoch,
         moodLevel: moodLevel,
         fatigueScore: fatigueScore,
-        activityType: activityType,
+        activityType: flightMode,
         rhythmIntensity: rhythmIntensity,
       );
       
@@ -337,7 +350,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     int moodLevel = 3;
     int fatigueScore = 3;
     int rhythmIntensity = 5;
-    String activityType = 'peak_activity';
+    String flightMode = 'solo_flight'; // 默认单机飞行
     
     await showDialog(
       context: context,
@@ -363,24 +376,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 活动类型选择
-                const Text('活动类型', style: TextStyle(fontSize: 16)),
-                const SizedBox(height: 8),
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(
-                      value: 'peak_activity',
-                      label: Text('峰值活动'),
-                    ),
-                    ButtonSegment(
-                      value: 'rest_cycle',
-                      label: Text('休息周期'),
-                    ),
-                  ],
-                  selected: {activityType},
-                  onSelectionChanged: (Set<String> selected) {
+                // 飞行模式选择
+                const Text(
+                  '飞行模式',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                FlightModeSelector(
+                  selectedMode: flightMode,
+                  onModeChanged: (mode) {
                     setDialogState(() {
-                      activityType = selected.first;
+                      flightMode = mode;
                     });
                   },
                 ),
@@ -388,14 +398,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 
                 // 情绪水平（表情选择器）
                 EmojiSelector(
-                  label: '情绪水平',
+                  label: flightMode == 'coop_mission' ? '默契程度' : '情绪水平',
                   selectedValue: moodLevel,
                   onChanged: (value) {
                     setDialogState(() {
                       moodLevel = value;
                     });
                   },
-                  options: MoodOptions.options,
+                  options: flightMode == 'coop_mission'
+                      ? CoopMoodOptions.options
+                      : MoodOptions.options,
                 ),
                 const SizedBox(height: 24),
                 
@@ -437,7 +449,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   timestamp: DateTime.now().millisecondsSinceEpoch,
                   moodLevel: moodLevel,
                   fatigueScore: fatigueScore,
-                  activityType: activityType,
+                  activityType: flightMode,
                   rhythmIntensity: rhythmIntensity,
                 );
                 
@@ -796,15 +808,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
-                      record.activityType == 'peak_activity'
-                          ? Icons.trending_up
-                          : Icons.bedtime,
+                      record.activityType == 'coop_mission'
+                          ? Icons.people
+                          : Icons.person,
                       color: AppTheme.getMoodColor(record.moodLevel),
                     ),
                   ),
-                  title: Text(
-                    record.activityType == 'peak_activity' ? '已交作业' : '闭关中',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  title: Row(
+                    children: [
+                      Text(
+                        '已交作业',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      if (record.activityType == 'coop_mission') ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEC4899).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: const Color(0xFFEC4899),
+                              width: 1,
+                            ),
+                          ),
+                          child: const Text(
+                            'CO-OP',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFEC4899),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   subtitle: Text(
                     dateStr,

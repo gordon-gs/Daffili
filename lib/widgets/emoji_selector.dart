@@ -199,3 +199,27 @@ class IntensityOptions {
     ),
   ];
 }
+
+/// 协同模式下的默契程度选项
+class CoopMoodOptions {
+  static const List<EmojiOption> options = [
+    EmojiOption(
+      emoji: '😐',
+      label: '一般',
+      value: 1,
+      color: Color(0xFF94A3B8),
+    ),
+    EmojiOption(
+      emoji: '🥰',
+      label: '和谐',
+      value: 3,
+      color: Color(0xFFEC4899), // 粉红
+    ),
+    EmojiOption(
+      emoji: '🔥',
+      label: '热烈',
+      value: 5,
+      color: Color(0xFFF43F5E), // 深红
+    ),
+  ];
+}
