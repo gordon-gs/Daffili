@@ -1,0 +1,52 @@
+name: vital_sync
+description: VitalSync - 精力管理与生理节律追踪应用
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # 状态管理
+  flutter_riverpod: ^2.4.9
+  
+  # 本地数据库
+  isar: ^3.1.0+1
+  isar_flutter_libs: ^3.1.0+1
+  path_provider: ^2.1.1
+  
+  # 数据可视化
+  fl_chart: ^0.65.0
+  
+  # 生物识别
+  local_auth: ^2.1.7
+  
+  # UI 增强
+  flutter_animate: ^4.3.0
+  
+  # 震动反馈
+  vibration: ^1.8.3
+  
+  # 加密
+  encrypt: ^5.0.3
+  
+  # 日期处理
+  intl: ^0.18.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  
+  # Isar 代码生成
+  isar_generator: ^3.1.0+1
+  build_runner: ^2.4.7
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/
