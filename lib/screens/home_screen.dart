@@ -66,6 +66,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   
   /// 处理能量球点击事件
   void _handleDateTap(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final selectedDate = DateTime(date.year, date.month, date.day);
+    
+    // 如果选择的是过去30天内的日期，弹出补录对话框
+    final daysDiff = today.difference(selectedDate).inDays;
+    if (daysDiff >= 0 && daysDiff <= 30) {
+      // 检查是否已有记录
+      final hasRecord = _recentRecords.any((record) {
+        final recordDate = DateTime.fromMillisecondsSinceEpoch(record.timestamp);
+        final recordDay = DateTime(recordDate.year, recordDate.month, recordDate.day);
+        return recordDay.isAtSameMomentAs(selectedDate);
+      });
+      
+      if (!hasRecord) {
+        // 弹出补录对话框
+        _showRetroactiveRecordDialog(selectedDate);
+      } else {
+        // 已有记录，高亮显示
+        _highlightAndScroll(date);
+      }
+    } else {
+      _highlightAndScroll(date);
+    }
+  }
+  
+  /// 高亮显示日期并滚动
+  void _highlightAndScroll(DateTime date) {
     setState(() {
       _highlightedDate = date;
     });
@@ -91,6 +119,218 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         );
       }
     });
+  }
+  
+  /// 补交作业对话框
+  Future<void> _showRetroactiveRecordDialog(DateTime selectedDate) async {
+    int moodLevel = 3;
+    int fatigueScore = 3;
+    int rhythmIntensity = 5;
+    String activityType = 'peak_activity';
+    String selectedEmoji = '💪';
+    TimeOfDay selectedTime = TimeOfDay.now();
+    
+    final result = await showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.5),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: AlertDialog(
+            backgroundColor: Colors.white.withOpacity(0.9),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            title: Row(
+              children: [
+                const Icon(
+                  Icons.history_edu,
+                  color: AppTheme.primaryBlue,
+                  size: 28,
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('补交作业'),
+                    Text(
+                      DateFormat('yyyy年MM月dd日').format(selectedDate),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppTheme.textSecondary,
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 时间选择
+                  _buildSectionTitle('记录时间'),
+                  const SizedBox(height: 12),
+                  GestureDetector(
+                    onTap: () async {
+                      final time = await showTimePicker(
+                        context: context,
+                        initialTime: selectedTime,
+                      );
+                      if (time != null) {
+                        setDialogState(() {
+                          selectedTime = time;
+                        });
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryBlue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.access_time,
+                            color: AppTheme.primaryBlue,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            selectedTime.format(context),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primaryBlue,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  
+                  // 其余字段与正常记录相同
+                  _buildSectionTitle('心情评分'),
+                  Slider(
+                    value: moodLevel.toDouble(),
+                    min: 1,
+                    max: 5,
+                    divisions: 4,
+                    activeColor: AppTheme.primaryBlue,
+                    label: moodLevel.toString(),
+                    onChanged: (value) {
+                      setDialogState(() {
+                        moodLevel = value.toInt();
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  _buildSectionTitle('疲劳分数'),
+                  Slider(
+                    value: fatigueScore.toDouble(),
+                    min: 1,
+                    max: 5,
+                    divisions: 4,
+                    activeColor: AppTheme.primaryBlue,
+                    label: fatigueScore.toString(),
+                    onChanged: (value) {
+                      setDialogState(() {
+                        fatigueScore = value.toInt();
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  _buildSectionTitle('节律强度'),
+                  Slider(
+                    value: rhythmIntensity.toDouble(),
+                    min: 1,
+                    max: 10,
+                    divisions: 9,
+                    activeColor: AppTheme.primaryBlue,
+                    label: rhythmIntensity.toString(),
+                    onChanged: (value) {
+                      setDialogState(() {
+                        rhythmIntensity = value.toInt();
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text(
+                  '取消',
+                  style: TextStyle(color: AppTheme.textSecondary),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryBlue,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('保存'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    
+    if (result == true) {
+      // 构建指定日期和时间的时间戳
+      final recordDateTime = DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+        selectedTime.hour,
+        selectedTime.minute,
+      );
+      
+      final record = VitalityRecord.create(
+        timestamp: recordDateTime.millisecondsSinceEpoch,
+        moodLevel: moodLevel,
+        fatigueScore: fatigueScore,
+        activityType: activityType,
+        rhythmIntensity: rhythmIntensity,
+      );
+      
+      try {
+        await _db.createRecord(record);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('补录成功！${DateFormat('MM月dd日').format(selectedDate)}'),
+              backgroundColor: AppTheme.primaryBlue,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+          _loadData();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('补录失败: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
   
   Future<void> _showRecordDialog() async {
@@ -450,6 +690,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ),
       ],
+    );
+  }
+  
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+        color: AppTheme.textPrimary,
+      ),
     );
   }
   
