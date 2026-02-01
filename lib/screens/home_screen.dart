@@ -4,6 +4,7 @@ import 'dart:ui';
 import '../models/vitality_record.dart';
 import '../services/database_service.dart';
 import '../services/health_analyzer.dart';
+import '../services/cloud_sync_service.dart';
 import '../widgets/particle_animation_button.dart';
 import '../widgets/emoji_selector.dart';
 import '../widgets/glass_card.dart';
@@ -11,6 +12,7 @@ import '../widgets/weekly_rhythm_card.dart';
 import '../widgets/paper_plane_particle.dart';
 import '../widgets/flight_mode_selector.dart';
 import '../utils/app_theme.dart';
+import 'settings_screen.dart';
 import 'package:intl/intl.dart';
 
 /// 主页屏幕
@@ -152,7 +154,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('补交作业'),
+                    const Text('补录记录'),
                     Text(
                       DateFormat('yyyy年MM月dd日').format(selectedDate),
                       style: const TextStyle(
@@ -320,6 +322,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       
       try {
         await _db.createRecord(record);
+        
+        // 异步触发云同步
+        CloudSyncService.instance.syncToCloud().catchError((e) {
+          print('☁️ 云同步失败: $e');
+        });
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -365,7 +373,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             elevation: 0,
             title: const Text(
-              '新建作业记录',
+              '新增记录',
               style: TextStyle(
                 color: AppTheme.textPrimary,
                 fontWeight: FontWeight.bold,
@@ -454,6 +462,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 );
                 
                 await _db.createRecord(record);
+                
+                // 异步触发云同步
+                CloudSyncService.instance.syncToCloud().catchError((e) {
+                  print('☁️ 云同步失败: $e');
+                });
+                
                 Navigator.of(context).pop();
                 _loadData();
                 
@@ -517,8 +531,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsScreen(),
+                ),
+              );
+            },
+            tooltip: '设置',
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadData,
+            tooltip: '刷新',
           ),
         ],
       ),
@@ -544,6 +571,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             if (_analysisResult != null) ...[
               _buildAnalysisCard(),
               const SizedBox(height: 16),
+              
+              // 毒舌健身教练警告卡片
+              if (_analysisResult!.personalizedSuggestion != null)
+                _buildToxicCoachCard(),
+              if (_analysisResult!.personalizedSuggestion != null)
+                const SizedBox(height: 16),
             ],
             
             // 周度节律卡片
@@ -731,6 +764,161 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           fontSize: 12,
           fontWeight: FontWeight.bold,
           color: Colors.white,
+        ),
+      ),
+    );
+  }
+  
+  /// 毒舌健身教练警告卡片
+  Widget _buildToxicCoachCard() {
+    final analysis = _analysisResult!;
+    final isHighFrequency = analysis.isHighFrequencyWarning;
+    
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.elasticOut,
+      builder: (context, value, child) {
+        return Transform.scale(
+          scale: 0.95 + (value * 0.05),
+          child: child,
+        );
+      },
+      child: GlassCard(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isHighFrequency
+                  ? const Color(0xFFF43F5E) // 红色边框
+                  : const Color(0xFFF59E0B), // 橙色边框
+              width: isHighFrequency ? 3 : 2,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  // 动态图标
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    duration: const Duration(milliseconds: 600),
+                    builder: (context, value, child) {
+                      return Transform.rotate(
+                        angle: value * 0.1 * (isHighFrequency ? 2 : 1),
+                        child: Icon(
+                          isHighFrequency
+                              ? Icons.warning_amber_rounded
+                              : Icons.info_outline,
+                          color: isHighFrequency
+                              ? const Color(0xFFF43F5E)
+                              : const Color(0xFFF59E0B),
+                          size: 28,
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      isHighFrequency ? '🚨 紧急警告' : '⚠️ 友情提示',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: isHighFrequency
+                            ? const Color(0xFFF43F5E)
+                            : const Color(0xFFF59E0B),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isHighFrequency
+                          ? const Color(0xFFF43F5E).withOpacity(0.15)
+                          : const Color(0xFFF59E0B).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '今日 ${analysis.dailyCount}次',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: isHighFrequency
+                            ? const Color(0xFFF43F5E)
+                            : const Color(0xFFF59E0B),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              
+              // 毒舌文案
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isHighFrequency
+                      ? const Color(0xFFF43F5E).withOpacity(0.08)
+                      : const Color(0xFFF59E0B).withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  analysis.personalizedSuggestion!,
+                  style: TextStyle(
+                    fontSize: 15,
+                    height: 1.6,
+                    fontWeight: FontWeight.w500,
+                    color: isHighFrequency
+                        ? const Color(0xFF991B1B)
+                        : const Color(0xFF92400E),
+                  ),
+                ),
+              ),
+              
+              // 震动效果（高频时）
+              if (isHighFrequency) ...[
+                const SizedBox(height: 12),
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.0, end: 1.0),
+                  duration: const Duration(milliseconds: 800),
+                  builder: (context, value, child) {
+                    final shake = (value < 0.5
+                        ? value * 4
+                        : (1 - value) * 4) * 3;
+                    return Transform.translate(
+                      offset: Offset(shake, 0),
+                      child: child,
+                    );
+                  },
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.fitness_center,
+                        size: 16,
+                        color: const Color(0xFFF43F5E).withOpacity(0.6),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '你的肌肉在哭泣...',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFFF43F5E).withOpacity(0.8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );

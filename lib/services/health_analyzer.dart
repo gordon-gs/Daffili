@@ -15,13 +15,44 @@ class HealthAnalyzer {
     final recentRecords = await _db.getRecentRecords(7);
     final allRecords = await _db.getRecentRecords(30);
     
+    // 获取当日记录用于频次监听
+    final todayRecords = await _getTodayRecords();
+    final dailyCount = todayRecords.length;
+    
     return HealthAnalysisResult(
       frequency: _analyzeFrequency(recentRecords),
       energyLevel: _analyzeEnergyLevel(recentRecords),
       moodPattern: _analyzeMoodPattern(recentRecords),
       recommendations: _generateRecommendations(recentRecords, allRecords),
       warningLevel: _calculateWarningLevel(recentRecords),
+      personalizedSuggestion: _generateToxicCoachSuggestion(dailyCount),
+      dailyCount: dailyCount,
+      isHighFrequencyWarning: dailyCount >= 3,
     );
+  }
+  
+  /// 获取当日所有记录
+  Future<List<VitalityRecord>> _getTodayRecords() async {
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final todayEnd = todayStart.add(const Duration(days: 1));
+    
+    final allRecords = await _db.getAllRecords();
+    
+    return allRecords.where((record) {
+      final recordTime = DateTime.fromMillisecondsSinceEpoch(record.timestamp);
+      return recordTime.isAfter(todayStart) && recordTime.isBefore(todayEnd);
+    }).toList();
+  }
+  
+  /// 生成毒舌健身教练建议
+  String? _generateToxicCoachSuggestion(int dailyCount) {
+    if (dailyCount == 2) {
+      return '你今天消耗的能量已经超过了你刚才喝的那桶蛋白粉。想增肌？你这是在拆东墙补西墙。';
+    } else if (dailyCount >= 3) {
+      return '恭喜，你已经成功进入了「肌肉降解」模式。按照目前的起飞频率，你练出的每一块腹肌都在哭泣。你是想当个自律的猛男，还是想当个被抽干的空壳？';
+    }
+    return null;
   }
   
   /// 分析频率
@@ -213,6 +244,9 @@ class HealthAnalysisResult {
   final MoodAnalysis moodPattern;
   final List<String> recommendations;
   final int warningLevel;
+  final String? personalizedSuggestion;
+  final int dailyCount;
+  final bool isHighFrequencyWarning;
   
   HealthAnalysisResult({
     required this.frequency,
@@ -220,6 +254,9 @@ class HealthAnalysisResult {
     required this.moodPattern,
     required this.recommendations,
     required this.warningLevel,
+    this.personalizedSuggestion,
+    this.dailyCount = 0,
+    this.isHighFrequencyWarning = false,
   });
 }
 

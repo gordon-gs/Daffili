@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- 包含 Isar 数据库文件 -->
+    <include domain="database" path="default.isar"/>
+    <include domain="database" path="default.isar.lock"/>
+    
+    <!-- 包含 SharedPreferences（备份开关状态等）-->
+    <include domain="sharedpref" path="FlutterSharedPreferences.xml"/>
+    
+    <!-- 排除临时文件和缓存 -->
+    <exclude domain="file" path="cache/"/>
+    <exclude domain="file" path="code_cache/"/>
+</full-backup-content>

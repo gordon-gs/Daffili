@@ -35,6 +35,12 @@ dependencies:
   
   # 日期处理
   intl: ^0.18.1
+  
+  # 云同步
+  # iOS iCloud 支持
+  icloud_storage: ^2.1.1
+  # 跨平台共享偏好（用于备份开关状态）
+  shared_preferences: ^2.2.2
 
 dev_dependencies:
   flutter_test:

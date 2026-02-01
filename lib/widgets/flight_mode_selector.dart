@@ -49,7 +49,7 @@ class FlightModeSelector extends StatelessWidget {
       onTap: () => onModeChanged(mode),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: isSelected
               ? AppTheme.primaryBlue.withOpacity(0.15)
@@ -62,27 +62,13 @@ class FlightModeSelector extends StatelessWidget {
             width: 2,
           ),
         ),
-        child: Column(
-          children: [
-            Text(
-              icon,
-              style: TextStyle(
-                fontSize: 32,
-                height: 1.0,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected
-                    ? AppTheme.primaryBlue
-                    : AppTheme.textSecondary,
-              ),
-            ),
-          ],
+        child: Text(
+          icon,
+          style: TextStyle(
+            fontSize: 48,
+            height: 1.0,
+          ),
+          textAlign: TextAlign.center,
         ),
       ),
     );
